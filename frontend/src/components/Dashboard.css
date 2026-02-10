@@ -1,0 +1,45 @@
+.summary-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.summary-card .card-body {
+  padding: 1.5rem;
+}
+
+.summary-card .card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.summary-card .card-value {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 0.5rem;
+}
+
+.summary-card .card-subtitle {
+  font-size: 0.85rem;
+  color: #999;
+  margin-bottom: 0;
+}
+
+.chart-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.chart-card .card-header {
+  border-bottom: 1px solid #eee;
+}

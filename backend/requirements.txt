@@ -1,0 +1,11 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+python-dotenv==1.0.0
+azure-storage-blob==12.18.2
+azure-identity==1.14.0
+azure-mgmt-costmanagement==4.0.1
+pandas==2.0.3
+numpy==1.24.3
+Werkzeug==2.3.7
+gunicorn==21.2.0
+requests==2.31.0

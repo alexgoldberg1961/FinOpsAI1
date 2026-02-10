@@ -1,0 +1,23 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: finops-backend-pdb
+  namespace: finops
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: finops-backend
+
+---
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: finops-frontend-pdb
+  namespace: finops
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: finops-frontend

@@ -1,0 +1,30 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: finops-backend
+  namespace: finops
+spec:
+  selector:
+    matchLabels:
+      app: finops-backend
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /api/metrics
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: finops-backend-metrics
+  namespace: finops
+  labels:
+    app: finops-backend
+spec:
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+  selector:
+    app: finops-backend

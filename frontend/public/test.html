@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinOps Dashboard - Test</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px 0;
+    }
+    .dashboard-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      padding: 20px;
+      transition: transform 0.3s ease;
+    }
+    .dashboard-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    .stat-card {
+      text-align: center;
+      padding: 20px;
+      border-left: 4px solid #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+    }
+    .stat-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #ffffff;
+      margin: 10px 0;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    }
+    .stat-label {
+      color: rgba(255,255,255,0.9);
+      font-size: 0.9em;
+      text-transform: uppercase;
+    }
+    .navbar-custom {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .tab-button {
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .tab-button.active {
+      background: white;
+      color: #667eea;
+      font-weight: bold;
+    }
+    .resource-item {
+      border-left: 4px solid #667eea;
+      padding-left: 15px;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .recommendation-card {
+      border-left: 5px solid #ff6b6b;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #fff5f5;
+      border-radius: 5px;
+    }
+    .recommendation-card.high {
+      border-left-color: #ff6b6b;
+      background: #fff5f5;
+    }
+    .recommendation-card.medium {
+      border-left-color: #ffd93d;
+      background: #fffaf0;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: white;
+    }
+    .error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar-custom navbar">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1" style="color: white;">
+        <strong>FinOps Azure Cost Analysis</strong> - Mock Server Test
+      </span>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <div id="loading" class="loading" style="display: none;">
+      <h2>Loading dashboard...</h2>
+      <p>Fetching data from mock API server on port 5000</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+    <div id="success" class="success" style="display: none;">✓ Successfully connected to mock API server!</div>
+
+    <div id="content" style="display: none;">
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="dashboard-card stat-card">
+            <div class="stat-label">Total Monthly Cost</div>
+            <div class="stat-value">$<span id="totalCost">0</span></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="dashboard-card stat-card">
+            <div class="stat-label">Daily Average</div>
+            <div class="stat-value">$<span id="avgDaily">0</span></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="dashboard-card stat-card">
+            <div class="stat-label">Total Resources</div>
+            <div class="stat-value"><span id="resourceCount">0</span></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="dashboard-card stat-card">
+            <div class="stat-label">Unique Locations</div>
+            <div class="stat-value"><span id="locationCount">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-8">
+          <div class="dashboard-card">
+            <h5>30-Day Cost Trend</h5>
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="dashboard-card">
+            <h5>Cost by Resource Type</h5>
+            <canvas id="breakdownChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h5 style="margin: 0;">Most Expensive Resources</h5>
+              <div>
+                <select id="expensiveSortField" style="padding: 5px 10px; margin-right: 10px; border-radius: 5px; border: 1px solid #ccc;">
+                  <option value="cost">Sort by Cost</option>
+                  <option value="name">Sort by Name</option>
+                  <option value="usage">Sort by Usage</option>
+                  <option value="type">Sort by Type</option>
+                </select>
+                <select id="expensiveSortOrder" style="padding: 5px 10px; border-radius: 5px; border: 1px solid #ccc;">
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
+              </div>
+            </div>
+            <div id="expensiveResources"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h5 style="margin: 0;">Top Recommendations</h5>
+              <div>
+                <select id="recommendationSortField" style="padding: 5px 10px; margin-right: 10px; border-radius: 5px; border: 1px solid #ccc;">
+                  <option value="severity">Sort by Severity</option>
+                  <option value="savings">Sort by Est. Savings</option>
+                  <option value="title">Sort by Title</option>
+                </select>
+                <select id="recommendationSortOrder" style="padding: 5px 10px; border-radius: 5px; border: 1px solid #ccc;">
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
+              </div>
+            </div>
+            <div id="recommendations"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="dashboard-card">
+            <h5>API Health Check</h5>
+            <pre id="healthStatus" style="background: #f5f5f5; padding: 15px; border-radius: 5px;"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000';
+    let allExpensiveResources = [];
+    let allRecommendations = [];
+
+    function sortResources(resources, field = 'cost', order = 'desc') {
+      const sorted = [...resources];
+      sorted.sort((a, b) => {
+        let aVal = a[field] || 0;
+        let bVal = b[field] || 0;
+        
+        if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = (bVal || '').toString().toLowerCase();
+        }
+        
+        if (order === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+      return sorted;
+    }
+
+    function sortRecommendations(recs, field = 'severity', order = 'desc') {
+      const severityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+      const sorted = [...recs];
+      sorted.sort((a, b) => {
+        let aVal = a[field];
+        let bVal = b[field];
+        
+        if (field === 'severity') {
+          aVal = severityOrder[a.severity] || 0;
+          bVal = severityOrder[b.severity] || 0;
+        } else if (field === 'savings') {
+          aVal = a.estimated_savings || 0;
+          bVal = b.estimated_savings || 0;
+        } else if (field === 'title') {
+          aVal = (a.title || '').toLowerCase();
+          bVal = (b.title || '').toLowerCase();
+        }
+        
+        if (typeof aVal === 'string') {
+          if (order === 'asc') {
+            return aVal > bVal ? 1 : -1;
+          } else {
+            return aVal < bVal ? 1 : -1;
+          }
+        } else {
+          if (order === 'asc') {
+            return aVal - bVal;
+          } else {
+            return bVal - aVal;
+          }
+        }
+      });
+      return sorted;
+    }
+
+    function renderExpensiveResources() {
+      const field = document.getElementById('expensiveSortField')?.value || 'cost';
+      const order = document.getElementById('expensiveSortOrder')?.value || 'desc';
+      
+      const sorted = sortResources(allExpensiveResources, field, order);
+      let expensiveHtml = '';
+      sorted.forEach(r => {
+        expensiveHtml += `
+          <div class="resource-item">
+            <strong>${r.name}</strong>
+            <br/><small class="text-muted">${r.resource_type} - ${r.location}</small>
+            <br/><strong class="text-danger">$${r.cost.toFixed(2)}/month</strong>
+            <br/><small class="text-muted">Usage: ${r.usage_quantity || 0}</small>
+          </div>
+        `;
+      });
+      document.getElementById('expensiveResources').innerHTML = expensiveHtml;
+    }
+
+    function renderRecommendations() {
+      const field = document.getElementById('recommendationSortField')?.value || 'severity';
+      const order = document.getElementById('recommendationSortOrder')?.value || 'desc';
+      
+      const sorted = sortRecommendations(allRecommendations, field, order);
+      let recHtml = '';
+      sorted.forEach(rec => {
+        const severity = rec.severity.toLowerCase();
+        recHtml += `
+          <div class="recommendation-card ${severity}">
+            <h6>${rec.title}</h6>
+            <p class="mb-2">${rec.description}</p>
+            <small class="d-block mb-2"><strong>Est. Monthly Savings: $${rec.estimated_savings}</strong></small>
+            <span class="badge bg-${severity === 'high' ? 'danger' : 'warning'}">${rec.severity}</span>
+          </div>
+        `;
+      });
+      document.getElementById('recommendations').innerHTML = recHtml;
+    }
+
+    async function fetchData() {
+      try {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('success').style.display = 'none';
+        document.getElementById('content').style.display = 'none';
+
+        // Fetch all data
+        const [health, summary, trends, breakdown, expensive, recommendations] = await Promise.all([
+          fetch(`${API_URL}/api/health`).then(r => r.json()),
+          fetch(`${API_URL}/api/cost-summary`).then(r => r.json()),
+          fetch(`${API_URL}/api/trend-analysis?days=30`).then(r => r.json()),
+          fetch(`${API_URL}/api/cost-breakdown?by=resource_type`).then(r => r.json()),
+          fetch(`${API_URL}/api/most-expensive-resources?limit=5`).then(r => r.json()),
+          fetch(`${API_URL}/api/recommendations`).then(r => r.json())
+        ]);
+
+        // Store data for sorting
+        allExpensiveResources = expensive.resources || [];
+        allRecommendations = recommendations.recommendations || [];
+
+        // Update health status
+        document.getElementById('healthStatus').textContent = JSON.stringify(health, null, 2);
+
+        // Update summary
+        document.getElementById('totalCost').textContent = summary.total_cost.toFixed(2);
+        document.getElementById('avgDaily').textContent = summary.average_daily_cost.toFixed(2);
+        document.getElementById('resourceCount').textContent = summary.resource_count;
+        document.getElementById('locationCount').textContent = summary.unique_locations;
+
+        // Trend chart
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        new Chart(trendCtx, {
+          type: 'line',
+          data: {
+            labels: trends.trends.map(t => t.date),
+            datasets: [{
+              label: 'Daily Cost',
+              data: trends.trends.map(t => t.cost),
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+
+        // Breakdown chart
+        const breakdownCtx = document.getElementById('breakdownChart').getContext('2d');
+        new Chart(breakdownCtx, {
+          type: 'doughnut',
+          data: {
+            labels: breakdown.data.map(d => d.category),
+            datasets: [{
+              data: breakdown.data.map(d => d.cost),
+              backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#ff6b6b']
+            }]
+          },
+          options: { responsive: true }
+        });
+
+        // Initial render
+        renderExpensiveResources();
+        renderRecommendations();
+
+        // Add event listeners for sorting
+        document.getElementById('expensiveSortField')?.addEventListener('change', renderExpensiveResources);
+        document.getElementById('expensiveSortOrder')?.addEventListener('change', renderExpensiveResources);
+        document.getElementById('recommendationSortField')?.addEventListener('change', renderRecommendations);
+        document.getElementById('recommendationSortOrder')?.addEventListener('change', renderRecommendations);
+
+        // Show content
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('success').style.display = 'block';
+        document.getElementById('content').style.display = 'block';
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('error').innerHTML = `
+          <strong>Error:</strong> Failed to connect to mock API server.
+          <br/>Make sure the backend is running on http://localhost:5000
+          <br/>Error details: ${error.message}
+        `;
+      }
+    }
+
+    // Fetch data on page load
+    window.addEventListener('load', fetchData);
+
+    // Refresh button
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'r' && e.ctrlKey) {
+        e.preventDefault();
+        fetchData();
+      }
+    });
+  </script>
+</body>
+</html>
